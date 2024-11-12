@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do List</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        h1 { color: #4CAF50; }
+        #todo-list { list-style-type: none; padding: 0; }
+        .todo-item { padding: 10px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; }
+        .todo-item.completed { text-decoration: line-through; color: gray; }
+        button { cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<h1>To-Do List</h1>
+
+<div>
+    <input type="text" id="title" placeholder="Title" required>
+    <input type="text" id="description" placeholder="Description">
+    <button onclick="addTodo()">Add To-Do</button>
+</div>
+
+<ul id="todo-list"></ul>
+
+<script>
+    // Updated API URL to match your backend's port (7500)
+    const apiUrl = 'http://localhost:7500/todos';
+
+    // Fetch and display the to-do list
+    async function fetchTodos() {
+        const response = await fetch(apiUrl);
+        const todos = await response.json();
+        const todoList = document.getElementById('todo-list');
+        todoList.innerHTML = '';
+        todos.forEach(todo => {
+            const todoItem = document.createElement('li');
+            todoItem.className = `todo-item ${todo.completed ? 'completed' : ''}`;
+            todoItem.innerHTML = `
+                <span>${todo.title} - ${todo.description}</span>
+                <button onclick="toggleComplete('${todo._id}', ${!todo.completed})">
+                    ${todo.completed ? 'Undo' : 'Complete'}
+                </button>
+                <button onclick="deleteTodo('${todo._id}')">Delete</button>
+            `;
+            todoList.appendChild(todoItem);
+        });
+    }
+
+    // Add a new to-do
+    async function addTodo() {
+        const title = document.getElementById('title').value;
+        const description = document.getElementById('description').value;
+        if (!title) return alert("Title is required");
+
+        await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title, description })
+        });
+        
+        document.getElementById('title').value = '';
+        document.getElementById('description').value = '';
+        fetchTodos();
+    }
+
+    // Toggle to-do completion status
+    async function toggleComplete(id, completed) {
+        await fetch(`${apiUrl}/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ completed })
+        });
+        fetchTodos();
+    }
+
+    // Delete a to-do
+    async function deleteTodo(id) {
+        await fetch(`${apiUrl}/${id}`, { method: 'DELETE' });
+        fetchTodos();
+    }
+
+    // Initial fetch to display all todos
+    fetchTodos();
+</script>
+
+</body>
+</html>
